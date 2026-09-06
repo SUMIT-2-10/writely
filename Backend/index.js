@@ -18,8 +18,12 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 const frontendDist = path.resolve(__dirname, '../Frontend/dist');
 const defaultCoverImageURL = process.env.DEFAULT_COVER_IMAGE_URL || '';
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173,https://writely-two.vercel.app')
-  .split(',')
+const allowedOrigins = [...new Set([
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://writely-two.vercel.app',
+  ...(process.env.FRONTEND_URL || '').split(','),
+])]
   .map((origin) => origin.trim())
   .filter(Boolean);
 const cookieOptions = {
@@ -73,6 +77,17 @@ mongoDbConnect(process.env.MONGODB_URL)
   console.error("Error connecting to MongoDB:", err);
 });
 
+app.use('/api', async (req, res, next) => {
+  if (req.path === '/me' || req.path === '/auth/logout') return next();
+  try {
+    await mongoDbConnect(process.env.MONGODB_URL);
+    next();
+  } catch (error) {
+    console.error('MongoDB request connection failed:', error);
+    res.status(503).json({ error: 'Database is temporarily unavailable' });
+  }
+});
+
 app.get('/api/blogs', async (req, res) => {
   const allBlogs = await Blog.find().populate('createdBy', 'fullname profileImageURL').sort({ createdAt: -1 });
   res.json(allBlogs.map((blog) => {
@@ -92,6 +107,9 @@ app.post('/api/auth/signup', async (req, res) => {
     const token = createTokenforUser(user);
     res.cookie('token', token, cookieOptions).status(201).json({ user: { _id: user._id, fullname: user.fullname, email: user.email, profileImageURL: user.profileImageURL } });
   } catch (error) {
+    if (error.name === 'MongoServerSelectionError' || error.name === 'MongooseError') {
+      return res.status(503).json({ error: 'Database is temporarily unavailable' });
+    }
     res.status(400).json({ error: error.code === 11000 ? 'Email is already registered' : 'Unable to create account' });
   }
 });
@@ -101,7 +119,10 @@ app.post('/api/auth/signin', async (req, res) => {
     const { email, password } = req.body;
     const token = await User.mstchPasswordAndtokenGenerator(email, password);
     res.cookie('token', token, cookieOptions).json({ success: true });
-  } catch {
+  } catch (error) {
+    if (error.name === 'MongoServerSelectionError' || error.name === 'MongooseError') {
+      return res.status(503).json({ error: 'Database is temporarily unavailable' });
+    }
     res.status(401).json({ error: 'Invalid email or password' });
   }
 });
