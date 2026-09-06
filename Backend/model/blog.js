@@ -11,7 +11,8 @@ const blogSchema = new Schema({
     },
     coverImageURL: {
         type: String,
-        default: 'https://res.cloudinary.com/dywo0jzue/image/upload/v1775056276/samples/paper.png',
+        required: false,
+        default: () => process.env.DEFAULT_COVER_IMAGE_URL,
     },
     coverImagePublicId: {
         type: String,
