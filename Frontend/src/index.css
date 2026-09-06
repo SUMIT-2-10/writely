@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Ubuntu:wght@400;500;700&display=swap');
+
+:root {
+  --background: hsl(8 10% 100%);
+  --foreground: hsl(207 14% 4%);
+  --card: hsl(8 10% 100%);
+  --primary: hsl(11 89% 28%);
+  --secondary: hsl(80 37% 92%);
+  --secondary-foreground: hsl(80 60% 11%);
+  --muted-foreground: hsl(259 4% 41%);
+  --accent: hsl(118 65% 95%);
+  --border: hsl(244 9% 87%);
+  --font-sans: 'Ubuntu', ui-sans-serif, system-ui, sans-serif;
+  font: 16px/1.5 var(--font-sans);
+  color: var(--foreground);
+  background: var(--background);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { margin: 0; min-width: 320px; }
+html { scroll-behavior: smooth; }
+#root { min-height: 100svh; }

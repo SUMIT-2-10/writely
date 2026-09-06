@@ -1,44 +1,46 @@
 const { Router } = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { v2: cloudinary } = require('cloudinary');
 
 const Blog = require('../model/blog');
 const Comment = require('../model/comment');
 
 const router = Router();
 
-// Ensure uploads directory exists
-const uploadDir = path.resolve('./public/uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Storage configuration
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage: multer.memoryStorage() });
+
+const uploadToCloudinary = (file) => new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+        { folder: 'blogging/covers', resource_type: 'image' },
+        (error, result) => error ? reject(error) : resolve(result),
+    );
+    stream.end(file.buffer);
+});
 
 router.get('/create', (req, res) => {
     res.render('createBlog');
 });
 
 router.post('/create', upload.single('coverImage'), async (req, res) => {
-    
-    const blog = await Blog.create({
-        title: req.body.title,
-        content: req.body.content,
-        coverImageURL: req.file ? `/uploads/${req.file.filename}` : undefined,
-        createdBy: res.locals.user._id,
-    });
-    res.redirect(`/blog/${blog._id}`);
+    try {
+        const coverImageURL = req.file ? (await uploadToCloudinary(req.file)).secure_url : undefined;
+        const blog = await Blog.create({
+            title: req.body.title,
+            content: req.body.content,
+            coverImageURL,
+            createdBy: res.locals.user._id,
+        });
+        res.redirect(`/blog/${blog._id}`);
+    } catch (error) {
+        console.error('Cloudinary upload failed:', error);
+        res.status(500).send('Unable to upload cover image');
+    }
 });
 
 
