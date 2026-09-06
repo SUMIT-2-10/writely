@@ -18,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 const frontendDist = path.resolve(__dirname, '../Frontend/dist');
 const defaultCoverImageURL = process.env.DEFAULT_COVER_IMAGE_URL || '';
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173,https://writely-two.vercel.app')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
